@@ -33,6 +33,6 @@ export async function deleteWorkHour(body: string | null) {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ message: "Post deleted" }),
+    body: JSON.stringify({ message: "Logged Work deleted" }),
   };
 }

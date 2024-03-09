@@ -1,4 +1,5 @@
-import { DynamoDB, QueryCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDB, GetItemCommand } from "@aws-sdk/client-dynamodb";
+import { WorkHourResponseDTO } from "../../../types";
 
 const dynamodb = new DynamoDB({});
 
@@ -14,20 +15,36 @@ export async function getWorkHourFromUsernameBasedOnDate(
       }),
     };
   }
+
   // Create the work hour item
   const response = await dynamodb.send(
-    new QueryCommand({
+    new GetItemCommand({
       TableName: process.env.TABLE_NAME,
-      KeyConditionExpression: "pk = :pk and begins_with(sk, :sk)",
-      ExpressionAttributeValues: {
-        ":pk": { S: username },
-        ":sk": { S: `workhour#${date}` },
+      Key: {
+        pk: { S: username },
+        sk: { S: `workhour#${date}` },
       },
     })
   );
 
+  const item = response.Item;
+
+  if (!item) {
+    return {
+      statusCode: 404,
+      body: JSON.stringify("No items are found"),
+    };
+  }
+
+  const workHourResponseDto: WorkHourResponseDTO = {
+    startTimestamp: parseInt(item.startTimestamp.N!),
+    endTimestamp: parseInt(item.endTimestamp.N!),
+    date: item.sk.S!.split("#")[1], // Extract date from the sort key
+    duration: parseInt(item.duration.N!),
+  };
+
   return {
     statusCode: 200,
-    body: JSON.stringify(response.Items),
+    body: JSON.stringify(workHourResponseDto),
   };
 }
