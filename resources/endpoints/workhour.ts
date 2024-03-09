@@ -1,18 +1,21 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
-import { createWorkHour } from "../handlers/workhour/create";
+import { getWorkHourFromUsernameBasedOnDate } from "../handlers/workhour/get-one";
+import { deleteWorkHour } from "../handlers/workhour/delete";
+import { addWorkHourToUser } from "../handlers/workhour/create";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
-  const id = event.pathParameters?.id;
   const body = event.body;
+  const username = event.pathParameters?.username;
+  const date = event.pathParameters?.date;
 
   try {
     switch (event.httpMethod) {
       case "GET":
-        return await getOne({ id });
+        return await getWorkHourFromUsernameBasedOnDate(username, date);
       case "DELETE":
-        return await deleteWorkHour({ id });
+        return await deleteWorkHour(body);
       case "POST":
-        return await createWorkHour(body);
+        return await addWorkHourToUser(body);
       default:
         return {
           statusCode: 400,

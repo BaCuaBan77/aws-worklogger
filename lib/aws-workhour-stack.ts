@@ -3,10 +3,12 @@ import {
   ApiKey,
   ApiKeySourceType,
   Cors,
+  LambdaIntegration,
   RestApi,
   UsagePlan,
 } from "aws-cdk-lib/aws-apigateway";
 import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
+import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Construct } from "constructs";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -25,6 +27,7 @@ export class AwsWorkhourStack extends cdk.Stack {
     // Define DynamoDB table
     const workHourTable = new Table(this, "WorkHourTable", {
       partitionKey: { name: "pk", type: AttributeType.STRING },
+      sortKey: { name: "sk", type: AttributeType.STRING },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       billingMode: BillingMode.PAY_PER_REQUEST,
     });
@@ -60,6 +63,7 @@ export class AwsWorkhourStack extends cdk.Stack {
     const workHourLambda = new NodejsFunction(this, "WorkHourLambda", {
       entry: "resources/endpoints/workhour.ts",
       handler: "handler",
+      runtime: Runtime.NODEJS_20_X,
       environment: {
         TABLE_NAME: workHourTable.tableName,
       },
@@ -68,10 +72,36 @@ export class AwsWorkhourStack extends cdk.Stack {
     const workHoursLambda = new NodejsFunction(this, "WorkHoursLambda", {
       entry: "resources/endpoints/workhours.ts",
       handler: "handler",
+      runtime: Runtime.NODEJS_20_X,
       environment: {
         TABLE_NAME: workHourTable.tableName,
       },
     });
     workHourTable.grantReadWriteData(workHourLambda);
+    workHourTable.grantReadWriteData(workHoursLambda);
+
+    const updateWorkHours = api.root.addResource("workhours");
+    const getManyWorkHours = updateWorkHours.addResource("{username}");
+    const getOneWorkHours = getManyWorkHours.addResource("{date}");
+
+    const workHourIntegration = new LambdaIntegration(workHourLambda);
+    const workHoursIntegration = new LambdaIntegration(workHoursLambda);
+
+    updateWorkHours.addMethod("POST", workHourIntegration, {
+      apiKeyRequired: true,
+    });
+    updateWorkHours.addMethod("DELETE", workHourIntegration, {
+      apiKeyRequired: true,
+    });
+    getManyWorkHours.addMethod("GET", workHoursIntegration, {
+      apiKeyRequired: true,
+    });
+    getOneWorkHours.addMethod("GET", workHourIntegration, {
+      apiKeyRequired: true,
+    });
+
+    new cdk.CfnOutput(this, "API Key ID", {
+      value: apiKey.keyId,
+    });
   }
 }

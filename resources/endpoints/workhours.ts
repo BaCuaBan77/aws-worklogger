@@ -1,10 +1,21 @@
 import { APIGatewayProxyEvent } from "aws-lambda";
+import { getAllWorkHourFromUsername } from "../handlers/workhour/get-all";
 
 export const handler = async (event: APIGatewayProxyEvent) => {
+  const username = event.pathParameters?.username;
+
+  if (!username) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({
+        message: "Missing username to get work hours",
+      }),
+    };
+  }
   try {
     switch (event.httpMethod) {
       case "GET":
-        return await getAll();
+        return await getAllWorkHourFromUsername(username);
       default:
         return {
           statusCode: 400,
