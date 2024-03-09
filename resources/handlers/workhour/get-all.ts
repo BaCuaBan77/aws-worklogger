@@ -21,7 +21,7 @@ export async function getAllWorkHourFromUsername(username: string) {
       startTimestamp: parseInt(item.startTimestamp.N!),
       endTimestamp: parseInt(item.endTimestamp.N!),
       date: item.sk.S!.split("#")[1], // Extract date from the sort key
-      duration: parseInt(item.duration.N!),
+      duration: parseFloat(item.duration.N!),
     }));
   }
   return {
